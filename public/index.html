@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
+    <script src="./d3.js"></script>
+    <!-- <script src="./BeijingGeo.js"></script> -->
+    <script src="./twCountry.js"></script>
+    <!-- <script src="./twTown.js"></script> -->
   </head>
   <body>
     <noscript>
@@ -13,5 +17,52 @@
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->
+    <svg id="chartx"></svg>
   </body>
+  <script>
+    const svgWidth = 500
+    const svgHeight = 500
+    const padding = 30
+
+    const svg = d3.select('#chart')
+      .attr('height', svgHeight)
+      .attr('width', svgWidth)
+
+    const x0 = padding, y0 = padding, x1 = svgWidth - padding * 2, y1 = svgHeight - padding * 2
+    const projection = d3.geoMercator()
+      .fitExtent([[x0, y0], [x1, y1]],BeijingGeoJson) 
+
+    const pathGenerator = d3.geoPath()
+      .projection(projection)
+
+    let clicked = (d) => {
+      alert(d.properties.COUNTYNAME)
+    }
+    
+    const mapPath = svg.selectAll('path')
+      .data(BeijingGeoJson.features)
+      .join('path')
+      .attr("d", pathGenerator)
+      .attr("stroke-width", 0.5)
+      .attr("stroke", "#000000")
+      .attr("fill", "#ffffff")
+      .on('mouseover', function(d){ // on hover, show detail
+        console.log(d.properties.county)
+      })
+      .on('click', clicked);
+
+      // zoom in
+      
+      // update data
+      //   select town by country
+      //   put data into twCountry
+      //   remove original country 
+
+      // drag function
+
+    
+  </script>
 </html>
+
+
+
