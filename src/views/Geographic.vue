@@ -10,13 +10,16 @@ import { select, geoMercator, geoPath, zoom } from 'd3';
 export default {
   data(){
     return {
-      dataset: [10, 20, 30, 40, 33, 24, 12, 5],
-      width: 400,
-      height: 400, 
       svg: null,
       xScale: null,
-      padding: {left:30, right:30, top:20, bottom:20},
-      selectedCounty:null
+      selectedCounty:null,
+      width:600,
+      height:600,
+      transitionDuration: 500,
+      path:null,
+      g:null, 
+      svg:null,
+      
     }
   },
   watch:{
@@ -25,7 +28,15 @@ export default {
     }
   },
   methods:{
-
+    selectMap:function(geojson,location){
+      return geojson.filter( geoData => geoData.properties.county_id == location )
+    },
+    zzoom: function(){
+      d3.zoom().scaleExtent([1, 2]).on('zoom', () => {
+        g.style("stroke-width", 1 / d3.event.transform.k + "px");
+        g.attr("transform", d3.event.transform); // updated for d3 v4
+      })
+    } 
   },
   mounted(){
     //Zoom
@@ -35,97 +46,112 @@ export default {
       g.attr("transform", d3.event.transform); // updated for d3 v4
     }
     //makemap
+
     const makemap = (geojson) => {
-      let path = g.on('click',()=>{
-        console.log('mmm')
-      }).selectAll('path').data(geojson)
+      let path = g.selectAll('path').data(geojson)
       .enter().append('path')
       .attr('d',pathGenerator)
       .attr('class','boundary')
       .attr("stroke-width", 0.2)
       .attr("stroke", "#000000")
       .attr("fill", "#ffffff")
+      
+ 
+      path
+      .on('mouseover', (d) => {
+        d3.select(d)
+        .transition()
+        .duration(500)
+        .attr("fill", "#DEB887")
+        .attr('stroke','gray')
+        .attr('stroke-opacity', 0.5)
+        .attr("stroke-width", 1)
+        
+      })
+      .on('mouseout', (d) => {
+        d3.select(event.currentTarget)
+        .transition()
+        .duration(500)
+        .attr("fill", "white")
+        .attr('stroke','black')
+        .attr('stroke-opacity', 1)
+        .attr("stroke-width", 0.2)
+      })
+      .append('title')
+      .text( d => d.properties.county)
 
-      //zoomToBoundingBox
-      const zoomToBoundingBox = d => {
+      
+
+
+      path.on('click',clicked)
+
+      path.nodes().forEach( (d,i) => {
+        setTimeout(()=>{
+          let p = d3.select(d)
+          repeat(p)
+        },i * 100)
+      });
+      
+      let repeat = (p) => {
+        p
+        .transition().duration(500).attr('fill', 'green').attr('fill-opacity',0.3)
+        .transition().duration(500).attr('fill', 'white')
+        .transition().duration(500).attr('fill', 'green').attr('fill-opacity',0.3)
+        .transition().duration(500).attr('fill', 'white')
+        .transition().duration(500).attr('fill', 'green').attr('fill-opacity',0.3)
+        .transition().duration(500).attr('fill', 'white')
+        .transition().duration(500).attr('fill', 'green').attr('fill-opacity',1)
+      }
+
+    }
+
+    //zoomToBoundingBox
+    const zoomToBoundingBox = d => {
       let bounds = pathGenerator.bounds(d),
           dx = bounds[1][0] - bounds[0][0],
           dy = bounds[1][1] - bounds[0][1],
           x = (bounds[0][0] + bounds[1][0]) / 2,
           y = (bounds[0][1] + bounds[1][1]) / 2,
-          scale = Math.max(1, Math.min(10, .81/ Math.max(dx / width, dy / height))),
-          translate = [width / 2 - scale * x, height / 2 - scale * y];
-          svg.transition().duration(transitionDuration).call(
-          zzoom.transform, d3.zoomIdentity.translate(translate[0],translate[1]).scale(scale)
-        ); 
-      }
-      //clicked
-      const clicked = d =>{
-        d3.json('twTown.json').then(projectGeoJSON =>{
-        // d3.json('project.json').then(projectGeoJSON =>{
-        let projectgeojson = projectGeoJSON.features;
-          console.log(d);
-          zoomToBoundingBox(d);
-          let selectedBlock = d.properties.county_id;
-          this.selectedCounty = selectedBlock
-          // let selectedBlock = d.properties.Block;
-          let selectedjson = selectMap(projectgeojson,selectedBlock);
-          g.selectAll("*").remove();
-          makemap(selectedjson)
-        })
-      }
-      path.on('click',clicked)
+        scale = Math.max(1, Math.min(10, .81/ Math.max(dx / this.width, dy / this.height))),
+        translate = [this.width / 2 - scale * x, this.height / 2 - scale * y];
+        svg.transition().duration(this.transitionDuration).call(
+        zzoom.transform, d3.zoomIdentity.translate(translate[0],translate[1]).scale(scale)
+      ); 
     }
 
-    //selectmap
-    const selectMap = (geojson,location) => {
-      let selection = [];
-      geojson.forEach( sel =>{
-        if (sel.properties.county_id == location){
-        // if (sel.properties.Block == location){
-          selection.push(sel);
-        }
-      });
-      return selection;
-    } 
+    //clicked
+    const clicked = d =>{
+      d3.json('twTown.json').then(projectGeoJSON =>{
+      // d3.json('project.json').then(projectGeoJSON =>{
+      let projectgeojson = projectGeoJSON.features;
+        console.log(d);
+        zoomToBoundingBox(d);
+        let selectedBlock = d.properties.county_id;
+        this.selectedCounty = selectedBlock
+        // let selectedBlock = d.properties.Block;
+        let selectedjson = this.selectMap(projectgeojson,selectedBlock);
+        g.selectAll("*").remove();
+        makemap(selectedjson)
+      })
+    }
+
 
     d3.json('twCountry.json').then(json =>{
-    // d3.json('block.json').then(json =>{
       makemap(json.features)
       d3.select('button').on('click',function(){
         g.selectAll("*").remove();
-        svg.transition().duration(transitionDuration).call( zzoom.transform, d3.zoomIdentity );
+        svg.transition().duration(500).call( zzoom.transform, d3.zoomIdentity );
         makemap(json.features);
       })
     })
 
-    const readGeoJSON = (filename) => {
-      let a;
-      let json = d3.json(`${filename}`).then(json =>{
-        a=  json.features;
-      })
-      console.log(a);
-    }
-    let features = readGeoJSON('twTown.json');
-    // let features = readGeoJSON('project.json');
-
-
     const svg = select('svg')
-    const transitionDuration = 500;
-    const width = document.body.clientWidth;
-    const height = document.body.clientHeight;
-    let active = d3.select(null);
-    svg.attr('width', width).attr('height', height).on('click', ()=>{
-      this.selectedCounty = null
-    })
     const g = svg.append('g');
+
+    svg.attr('width', this.width).attr('height', this.height)
     const mercator = geoMercator().scale(5000)
-    // const mercator = geoMercator().scale(10000)
-    .translate([width/2, height/2])
+    .translate([this.width/2, this.height/2])
     .center([121,23.2]);
-    // .center([73,19.7])
-    // const projection = d3.geoMercator()
-    //   .fitExtent([[x0, y0], [x1, y1]],BeijingGeoJson) 
     const pathGenerator = geoPath().projection(mercator);
   },
   created(){

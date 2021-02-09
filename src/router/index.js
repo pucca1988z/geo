@@ -20,6 +20,9 @@ const routes = [
   },
   {
     path:'/geographic', name:'Geographic', component:()=>import('@/views/Geographic.vue')
+  },
+  {
+    path:'/d31', name:'d31', component:() => import('@/views/d31.vue')
   }
 ]
 
